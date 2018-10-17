@@ -38,6 +38,7 @@ cutoff = args.cutoff
 
 complement = {'A':'T', 'T':'A', 'G':'C', 'C':'G'}
 def reverse_complement(seq):
+	'''Given a sequence (5' to 3' direction), returns the [reverse] complement sequence (5' to 3' direction).'''
 	comp = "".join([complement[x] for x in seq])
 	comp = comp[::-1]
 	return(comp)
@@ -56,8 +57,11 @@ LN = 0 # line counter
 print("Commence DEMULTIPLEX!")
 
 with gzip.open(file1,"rt") as f1, gzip.open(file2,"rt") as f2, gzip.open(file3,"rt") as f3, gzip.open(file4,"rt") as f4:
-	while LN < 1452986940: # integer refers to line number of one file. 
+	while True:
 		
+		if f1.readline().strip() == "":
+			break 
+			
 		# WORKING STATUS
 		LN += 4 # line counter
 		if LN % 100000 == 0: # per 100K line...
@@ -125,22 +129,22 @@ with gzip.open(file1,"rt") as f1, gzip.open(file2,"rt") as f2, gzip.open(file3,"
 				print(header1_1 + "_" + sequence2_2 + "_" + sequence2_3 + "\n" + sequence2_1 + "\n" + "+" + "\n" + quality_score4_1, file=r1_ambiguous) # print to read1_ambiguous 
 				print(header1_4 + "_" + sequence2_2 + "_" + sequence2_3 + "\n" + sequence2_4 + "\n" + "+" + "\n" + quality_score4_4, file=r2_ambiguous) # print to read2_ambiguous
 				continue
-
+		
 		# AFTER FILTERING 'N's AND BAD QUALITY SCORES, IF BARCODE 2 AND 3 ARE REVERSE COMPLEMENTARY SEQUENCES:
-
+		
 		temp_read1 = "Read1_{}_{}.fq".format(sequence2_2, sequence2_3) # Assigning a temporary variable so that output settings look cleaner. 
 		temp_read2 = "Read2_{}_{}.fq".format(sequence2_2, sequence2_3) # These variable refer to output files. 
 		
 		# print(temp_read1, temp_read2, sequence2_2, reverse_complement(sequence2_3))
 		
 		if (sequence2_2 == reverse_complement(sequence2_3)): # test if barcodes are reverse complement. No need to check if the complement argument is true because this situation is only true or false. 
-			if sequence2_2 in list(NoIndexHop.keys()): # assess whether a barcode is the one we provided. 
+			if sequence2_2 in NoIndexHop: # assess whether a barcode is the one we provided. 
 				NoIndexHop[sequence2_2] += 1 # update that specific barcode by one. 
 				with open(temp_read1, "a") as temp_read1, open(temp_read2, "a") as temp_read2: # then output all R1/R4 information to appropriate files with respect to their barcodes.
 					print(header1_1 + "_" + sequence2_2 + "_" + sequence2_3, "\n" + sequence2_1 + "\n" + "+" + "\n" + quality_score4_1, file=temp_read1)
 					print(header1_4 + "_" + sequence2_2 + "_" + sequence2_3, "\n" + sequence2_4 + "\n" + "+" + "\n" + quality_score4_4, file=temp_read2)
 		else: # if barcodes are not reverse complements...
-			if sequence2_2 in list(YesIndexHop.keys()): # assess whether a barcode is the one we provided. 
+			if sequence2_2 in YesIndexHop: # assess whether a barcode is the one we provided. 
 				YesIndexHop[sequence2_2] += 1 # update that specific barcode by one. 
 				with open("Read1_ambiguous.fq", "a") as r1_ambiguous, open("Read2_ambiguous.fq", "a") as r2_ambiguous:
 					print(header1_1 + "_" + sequence2_2 + "_" + sequence2_3, "\n" + sequence2_1 + "\n" + "+" + "\n" + quality_score4_1, file=r1_ambiguous) # print to read1_ambiguous
@@ -159,8 +163,7 @@ print("Bad Quality Score: ", summary_dict['ContainsBadQualityScore'])
 print("Not Reverse Complements: ", summary_dict['NotReverseComplements'])
 
 print("Total Index Hopping: ", sum(YesIndexHop.values()))
-print("Proportion of Index Hopping to Total Reads: ", IndexHopProportion)
-print("Percent of Index Hopping to Total Reads: ", IndexHopProportion * 100, "%", "\n")
+print("Proportion of Index Hopping to Total Reads: ", IndexHopProportion, "\n") 
 print("SUMMARY STATISTICS", "\n")
 
 print("All barcodes that have index hopped are in file 'BarcodesWithIndexHop'")
